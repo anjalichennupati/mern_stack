@@ -11,10 +11,9 @@ dotenv.config();
 
 const app = express();
 
-// ✅ Allow multiple frontend origins
+// ✅ Allowed frontend origin
 const allowedOrigins = [
-  // 'https://gentle-scone-06069d.netlify.app',
-  'https://mern-blockchain-gitagging.netlify.app/'
+  'https://mern-blockchain-gitagging.netlify.app' // ✅ Removed trailing slash
 ];
 
 app.use(cors({
@@ -25,6 +24,7 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   },
+  credentials: true, // ✅ Allow credentials (important for authentication)
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -40,7 +40,7 @@ mongoose.connect(process.env.MONGO, {
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch((err) => console.error('❌ MongoDB Connection Error:', err));
 
-// ✅ Define routes
+// ✅ Define API routes
 app.use('/api/user', userRoutes);
 app.use('/api/auth', authRoutes);
 
