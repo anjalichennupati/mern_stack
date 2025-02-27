@@ -1,6 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import cors from 'cors';
 import userRoutes from './routes/user.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import BlockchainModel from './models/data.model.js';
@@ -8,42 +9,33 @@ import BlockChain from './backend/blockchain.js';
 
 dotenv.config();
 
-mongoose
-  .connect(process.env.MONGO)
-  .then(() => {
-    console.log('Connected to MongoDB');
-  })
-  .catch((err) => {
-    console.log(err);
-  });
-
 const app = express();
 
+// ✅ Enable CORS to fix frontend API request issues
+app.use(cors({
+  origin: 'https://fancy-bienenstitch-6b08e1.netlify.app',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// ✅ Middleware to parse JSON requests
 app.use(express.json());
 
-app.listen(3000,() => {
-  console.log('Server is connecting to 3000');
-});
+// ✅ Connect to MongoDB
+mongoose.connect(process.env.MONGO, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+  .then(() => console.log('✅ Connected to MongoDB'))
+  .catch((err) => console.error('❌ MongoDB Connection Error:', err));
 
-app.use("/api/user",userRoutes);
-app.use("/api/auth",authRoutes);
+// ✅ Define routes
+app.use('/api/user', userRoutes);
+app.use('/api/auth', authRoutes);
 
-// creating middleware
-app.use((err, req, res, next) => {
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
-  return res.status(statusCode).json({
-    success: false,
-    message,
-    statusCode,
-  });
-});
-
-
-// viewing data for admin
+// ✅ Get all blockchain data
 app.get('/api/v1/data', async (req, res) => {
   try {
-    // Fetch data from the database
     const data = await BlockchainModel.find();
     res.json(data);
   } catch (error) {
@@ -51,41 +43,25 @@ app.get('/api/v1/data', async (req, res) => {
   }
 });
 
-//viewdata1
-//viewdata1
+// ✅ Get blockchain data by GI Tag
 app.get('/api/v1/data/:giTag', async (req, res) => {
-  const giTag = req.params.giTag;
-
-  // Fetch data based on giTag and send it in the response
   try {
-    const data = await BlockchainModel.find({ 'gitag.GITagID': giTag });
+    const data = await BlockchainModel.find({ 'gitag.GITagID': req.params.giTag });
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
-// Update the route to handle POST requests
+// ✅ Insert new data into blockchain
 app.post('/api/auth/insertdata/:giTag', async (req, res) => {
-  const {
-    GITagID,
-    GICreationDate,
-    ProductID,
-    ProductName,
-    AddressOfOrigin,
-    OwnershipID,
-    OwnershipStartDate,
-    OwnershipEndDate,
-    TransactionID,
-    TransactionDate,
-    UserID,
-    UserName,
-    EmailID,
-    Password,
-    RegistrationDate,
-  } = req.body;
-
   try {
+    const {
+      GITagID, GICreationDate, ProductID, ProductName, AddressOfOrigin,
+      OwnershipID, OwnershipStartDate, OwnershipEndDate,
+      TransactionID, TransactionDate, UserID, UserName, EmailID, Password, RegistrationDate
+    } = req.body;
+
     const newBlock = new BlockChain();
     newBlock.addGItags(GITagID, GICreationDate);
     newBlock.addProductValues(ProductID, ProductName, AddressOfOrigin);
@@ -93,48 +69,46 @@ app.post('/api/auth/insertdata/:giTag', async (req, res) => {
     newBlock.addTransactionValues(TransactionID, TransactionDate);
     newBlock.addUserDetails(UserID, UserName, EmailID, Password, RegistrationDate);
 
-    // Proceed with the usual validation
-    const lastBlock = await BlockchainModel.findOne(
-      {},
-      null,
-      { sort: { _id: -1 }, limit: 1 }
-    );
-    const prevHash = lastBlock ? lastBlock.hash : "";
+    // ✅ Get the last block hash
+    const lastBlock = await BlockchainModel.findOne({}, null, { sort: { _id: -1 }, limit: 1 });
+    const prevHash = lastBlock ? lastBlock.hash : '';
+
     await newBlock.addNewBlock(prevHash);
 
-    res.status(201).json({ message: "Details entered successfully" });
+    res.status(201).json({ success: true, message: 'Details entered successfully' });
   } catch (error) {
-    console.log("Error during data insertion:", error.message);
-    res
-      .status(500)
-      .json({ success: false, message: 'An error occurred during data insertion.' });
+    console.error('❌ Error inserting data:', error.message);
+    res.status(500).json({ success: false, message: 'An error occurred during data insertion.' });
   }
 });
 
-
-
-// API endpoint to get block details based on product ID
-// weird thing API endpoint error but blockdata is printed in the search page
+// ✅ Get block details based on Product ID
 app.get('/api/blockDetails/:productId', async (req, res) => {
   try {
     const productId = parseInt(req.params.productId, 10);
-
-    if (isNaN(productId)) {
-      res.json({ success: false, message: 'Invalid Product ID' });
-      return;
-    }
+    if (isNaN(productId)) return res.status(400).json({ success: false, message: 'Invalid Product ID' });
 
     const block = await BlockchainModel.findOne({ 'product.ProductID': productId });
-
     if (block) {
       res.json({ success: true, blockDetails: block });
     } else {
-      res.json({ success: false, message: 'Product not found' });
+      res.status(404).json({ success: false, message: 'Product not found' });
     }
   } catch (error) {
-    console.error('Error fetching block details:', error);
-    res.json({ success: false, message: 'An error occurred while fetching block details' });
+    console.error('❌ Error fetching block details:', error);
+    res.status(500).json({ success: false, message: 'An error occurred while fetching block details' });
   }
 });
 
-// QR Code
+// ✅ Global error handling middleware
+app.use((err, req, res, next) => {
+  console.error('❌ Global Error:', err);
+  res.status(err.statusCode || 500).json({
+    success: false,
+    message: err.message || 'Internal Server Error'
+  });
+});
+
+// ✅ Start the server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
