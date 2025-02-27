@@ -11,9 +11,20 @@ dotenv.config();
 
 const app = express();
 
-// ✅ Enable CORS to fix frontend API request issues
+// ✅ Allow multiple frontend origins
+const allowedOrigins = [
+  'https://gentle-scone-06069d.netlify.app',
+  'https://fancy-bienenstitch-6b08e1.netlify.app'
+];
+
 app.use(cors({
-  origin: 'https://fancy-bienenstitch-6b08e1.netlify.app',
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
