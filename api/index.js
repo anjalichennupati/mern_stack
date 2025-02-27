@@ -13,8 +13,8 @@ const app = express();
 
 // ✅ Allow multiple frontend origins
 const allowedOrigins = [
-  'https://gentle-scone-06069d.netlify.app',
-  'https://fancy-bienenstitch-6b08e1.netlify.app'
+  // 'https://gentle-scone-06069d.netlify.app',
+  'https://mern-blockchain-gitagging.netlify.app/'
 ];
 
 app.use(cors({
