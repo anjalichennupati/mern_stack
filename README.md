@@ -5,6 +5,7 @@
 
 This project integrates Blockchain with Geographical Indication (GI) tagging to create a secure and transparent supply chain system. By leveraging blockchain’s decentralized and immutable ledger, the system ensures traceability and prevents counterfeiting of region-specific products. GI tagging further enhances product authenticity, increasing customer trust and satisfaction. This approach not only strengthens supply chain security but also helps preserve cultural heritage while improving the credibility of retail networks. Below is an overview of the analysis, along with sample outputs and results. This project was done in Dec' 2023.
 
+![Made with JavaScript](https://forthebadge.com/images/badges/made-with-javascript.svg)
 
 
 
